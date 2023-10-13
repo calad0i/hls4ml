@@ -34,7 +34,7 @@ class FixSoftmaxTableSize(OptimizerPass):
                 warnings.warn(
                     (
                         f"Softmax layer {node.name} table size is too large for input"
-                        f"bitwidth {input_bw}. Setting table size to {2**input_bw}."
+                        "bitwidth {input_bw}. Setting table size to {2**input_bw}."
                         "To avoid this warning, please increase input bitwidth or"
                         "decrease table size."
                     ),
@@ -44,7 +44,7 @@ class FixSoftmaxTableSize(OptimizerPass):
                 warnings.warn(
                     (
                         f"Softmax layer {node.name} table size is too large for input"
-                        f"bitwidth {input_bw}. Setting table size to {2**input_bw}."
+                        "bitwidth {input_bw}. Setting table size to {2**input_bw}."
                         "To avoid this warning, please increase input bitwidth or"
                         "decrease table size."
                     ),
@@ -59,7 +59,3 @@ class FixSoftmaxTableSize(OptimizerPass):
                     stacklevel=1,
                 )
             return False
-
-
-def register_softmax__table_size_fix(backend):
-    backend.register_pass('fix_softmax_table_size', FixSoftmaxTableSize)
