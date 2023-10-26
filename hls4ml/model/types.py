@@ -193,6 +193,7 @@ class SaturationMode(Enum):
     SAT = 2
     SAT_ZERO = 3
     SAT_SYM = 4
+    AP_WRAP_SM = 5
 
     def __str__(self):
         return self.name
