@@ -264,7 +264,12 @@ class VivadoBackend(FPGABackend):
             layer.set_attr('strategy', 'latency')
 
         out_width = layer.get_output_variable().shape[0]
-        chosen_pf = layer.model.config.get_layer_config_value(layer, 'ParallelizationFactor', 1)
+
+        # Not overriding user parallelization factor, if already set and user has not specified a value
+        user_pf = layer.model.config.get_layer_config_value(layer, 'ParallelizationFactor', 1)
+        layer_pf = layer.get_attr('parallelization_factor', None)
+        chosen_pf = layer_pf or user_pf
+
         valid_pf = self.get_valid_conv_partition_splits(1, out_width)
         if chosen_pf not in valid_pf:
             closest_pf = self.get_closest_reuse_factor(valid_pf, chosen_pf)
@@ -276,6 +281,7 @@ class VivadoBackend(FPGABackend):
         else:
             closest_pf = chosen_pf
         layer.set_attr('n_partitions', out_width // closest_pf)
+        layer.set_attr('parallelization_factor', closest_pf)
 
         layer.set_attr('implementation', layer.model.config.get_conv_implementation(layer).lower())
 
@@ -319,7 +325,12 @@ class VivadoBackend(FPGABackend):
 
         out_height = layer.get_output_variable().shape[0]
         out_width = layer.get_output_variable().shape[1]
-        chosen_pf = layer.model.config.get_layer_config_value(layer, 'ParallelizationFactor', 1)
+
+        # Not overriding user parallelization factor, if already set and user has not specified a value
+        user_pf = layer.model.config.get_layer_config_value(layer, 'ParallelizationFactor', 1)
+        layer_pf = layer.get_attr('parallelization_factor', None)
+        chosen_pf = layer_pf or user_pf
+
         valid_pf = self.get_valid_conv_partition_splits(out_height, out_width)
         if chosen_pf not in valid_pf:
             closest_pf = self.get_closest_reuse_factor(valid_pf, chosen_pf)
@@ -331,6 +342,7 @@ class VivadoBackend(FPGABackend):
         else:
             closest_pf = chosen_pf
         layer.set_attr('n_partitions', out_height * out_width // closest_pf)
+        layer.set_attr('parallelization_factor', closest_pf)
 
         layer.set_attr('implementation', layer.model.config.get_conv_implementation(layer).lower())
 

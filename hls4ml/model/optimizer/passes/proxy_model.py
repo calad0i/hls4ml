@@ -60,6 +60,8 @@ class EnforceProxyModelEmbeddedConfig(OptimizerPass):
                     v0.precision = precision
                 elif k in target_node.attributes.attributes:
                     target_node.set_attr(k, v)
+                elif k == 'parallelization_factor':
+                    target_node.set_attr(k, int(v))
 
 
 def register_proxy_model():
