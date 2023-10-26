@@ -1,14 +1,15 @@
 import numpy as np
 
-from hls4ml.model.layers import Layer, register_layer
-from hls4ml.model.optimizer import OptimizerPass
-from hls4ml.backends.template import FunctionCallTemplate
-from hls4ml.model.types import Source
 from hls4ml.backends import Backend
+from hls4ml.backends.template import FunctionCallTemplate
+from hls4ml.model.optimizer import OptimizerPass
 from hls4ml.model.optimizer.passes.proxy_model import FixedPointQuantizer
+from hls4ml.model.types import Source
 
 
-def generate_mask_fn(name: str, shape: tuple[int, ...], k: np.ndarray, b: np.ndarray, i: np.ndarray, RND: str, SAT: str, backend: str) -> str:
+def generate_mask_fn(
+    name: str, shape: tuple[int, ...], k: np.ndarray, b: np.ndarray, i: np.ndarray, RND: str, SAT: str, backend: str
+) -> str:
     """Generate heterogenous quantization mask function, ONLY works for IOType=io_parallel"""
     assert k.shape[0] == b.shape[0] == i.shape[0] == 1
     assert backend.lower() in ('quartus', 'vivado', 'vitis'), f'Backend {backend} not tested'
@@ -31,7 +32,7 @@ template<typename input_t, typename output_t>
 void {name}(input_t *inp, output_t *out) {{
     #pragma HLS INLINE
     #pragma HLS PIPELINE
-        
+
 {body}
 }}
 '''

@@ -1,10 +1,10 @@
 import re
 from typing import Optional
 
-from hls4ml.model.types import FixedPrecisionType
 from hls4ml.backends.fpga.fpga_types import NamedType
 from hls4ml.model.layers import Layer, register_layer
-from hls4ml.model.optimizer import register_pass, OptimizerPass
+from hls4ml.model.optimizer import OptimizerPass, register_pass
+from hls4ml.model.types import FixedPrecisionType
 
 re_purge_prefix = re.compile(r'(?<!\w)(?:ap_|ac_)', re.IGNORECASE)
 re_parse_fixed = re.compile(r'\s*(u?)fixed<([\w,]+)>\s*', re.IGNORECASE)
