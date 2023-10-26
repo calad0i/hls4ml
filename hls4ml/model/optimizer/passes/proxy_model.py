@@ -1,5 +1,6 @@
 import re
 from typing import Optional
+from warnings import warn
 
 from hls4ml.backends.fpga.fpga_types import NamedType
 from hls4ml.model.layers import Layer, register_layer
@@ -35,6 +36,31 @@ def to_hls4ml_fixed(fixed: str):
     return new_type
 
 
+def userconf_ifdef(key: str, layer_name: str, model):
+    hls_config: dict = model.config.config['HLSConfig']
+    layer_confs: dict = hls_config.get('LayerName', None)
+    if not layer_confs:
+        return False
+    layer_conf = layer_confs.get(layer_name, None)
+    if not layer_conf:
+        return False
+    # return key in layer_conf # Ideal case. Not for now.
+    if key.endswith('_t') and key != 'table_t':
+        # table_t cannot be defined in Precision, for some reason.
+        # On the other hand, result_t, weight_t, bias_t, accum_t cannot be decleared explicitly outside Precision, for now.
+        # However, still assume that they can be defined explicitly outside Precision.
+        precision_conf = layer_conf.get('Precision', None)
+        if not precision_conf:
+            return key in layer_conf
+        return key[:-2] in precision_conf or key in layer_conf
+
+    if key == 'parallelization_factor':
+        # Irregular config key name.
+        return 'ParallelizationFactor' in layer_conf
+
+    return key in layer_conf
+
+
 class EnforceProxyModelEmbeddedConfig(OptimizerPass):
     def match(self, node: Layer):
         if not isinstance(node, FixedPointQuantizer):
@@ -52,6 +78,13 @@ class EnforceProxyModelEmbeddedConfig(OptimizerPass):
             name: str
             target_node: Layer = model.graph[name]
             for k, v in conf.items():
+                if userconf_ifdef(k, name, model):
+                    warn(
+                        f'Config key {k} is defined in hls_config for layer {name} by user. Proxy model config is ignored.',
+                        stacklevel=1,
+                    )
+                    continue
+
                 if k.endswith('_t'):
                     v0: Optional[NamedType] = target_node.get_attr(k)
                     if v0 is None:
