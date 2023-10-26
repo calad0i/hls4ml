@@ -2,6 +2,7 @@ import numpy as np
 
 from hls4ml.backends import Backend
 from hls4ml.backends.template import FunctionCallTemplate
+from hls4ml.model.layers import Layer
 from hls4ml.model.optimizer import OptimizerPass
 from hls4ml.model.optimizer.passes.proxy_model import FixedPointQuantizer
 from hls4ml.model.types import Source
