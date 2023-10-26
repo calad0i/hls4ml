@@ -72,6 +72,8 @@ class EnforceProxyModelEmbeddedConfig(OptimizerPass):
     def transform(self, model, node: FixedPointQuantizer):
         if 'layers' not in node.overrides:
             return False
+
+        graph_changed = False
         layers = node.overrides['layers']
         for name, conf in layers.items():
             conf: dict[str, str]
@@ -95,6 +97,14 @@ class EnforceProxyModelEmbeddedConfig(OptimizerPass):
                     target_node.set_attr(k, v)
                 elif k == 'parallelization_factor':
                     target_node.set_attr(k, int(v))
+
+            if linear_node := model.graph.get(f'{name}_linear'):
+                # Proxy model does not assume any extra linear layer.
+                # Purge them on sight
+                model.remove_node(linear_node)
+                graph_changed = True
+
+        return graph_changed
 
 
 def register_proxy_model():
