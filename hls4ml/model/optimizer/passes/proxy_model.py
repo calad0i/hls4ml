@@ -78,6 +78,9 @@ class EnforceProxyModelEmbeddedConfig(OptimizerPass):
         for name, conf in layers.items():
             conf: dict[str, str]
             name: str
+            if name not in model.graph:
+                # Some layer may be removed by other passes. (e.g. Final flatten layer)
+                continue
             target_node: Layer = model.graph[name]
             for k, v in conf.items():
                 if userconf_ifdef(k, name, model):
@@ -93,6 +96,10 @@ class EnforceProxyModelEmbeddedConfig(OptimizerPass):
                         continue
                     precision = to_hls4ml_fixed(v)
                     v0.precision = precision
+                    v0.name = f'{name}_{k[:-2]}'
+                    # Well, it turned out that there is yet ANOTHER copy saved in config....
+                    # Whyyyy?
+                    model.config.layer_name_precision[f'{name}_{k[:-2]}'] = v
                 elif k in target_node.attributes.attributes:
                     target_node.set_attr(k, v)
                 elif k == 'parallelization_factor':
