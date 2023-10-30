@@ -6,11 +6,11 @@ def fixedpoint_quantizer_handler(keras_layer, input_names, input_shapes, data_re
     config = parse_default_keras_layer(keras_layer, input_names)
 
     name = config['name']
-    removable = keras_layer['config']['removable']
+    fusible = keras_layer['config']['fusible']
     config['RND'] = keras_layer['config']['RND']
     config['SAT'] = keras_layer['config']['SAT']
-    config['removable'] = removable
-    if not removable:
+    config['fusible'] = fusible
+    if not fusible:
         k = data_reader.get_weights_data(name, 'keep_negative')
         b = data_reader.get_weights_data(name, 'bits')
         i = data_reader.get_weights_data(name, 'integers')

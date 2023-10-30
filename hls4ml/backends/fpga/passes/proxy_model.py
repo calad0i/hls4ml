@@ -45,7 +45,7 @@ class ProcessFixedPointQuantizerLayer(OptimizerPass):
         return isinstance(node, FixedPointQuantizer)
 
     def transform(self, model, node: FixedPointQuantizer):
-        if node.removable:
+        if node.fusible:
             model.remove_node(node, rewire=True)
             return True
 

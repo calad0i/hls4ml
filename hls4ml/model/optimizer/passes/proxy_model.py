@@ -8,7 +8,7 @@ from hls4ml.model.optimizer import OptimizerPass, register_pass
 from hls4ml.model.types import FixedPrecisionType
 
 re_purge_prefix = re.compile(r'(?<!\w)(?:ap_|ac_)', re.IGNORECASE)
-re_parse_fixed = re.compile(r'\s*(u?)fixed<([\w,]+)>\s*', re.IGNORECASE)
+re_parse_fixed = re.compile(r'\s*(u?)fixed<([^>]+)>\s*', re.IGNORECASE)
 
 
 class FixedPointQuantizer(Layer):
@@ -19,7 +19,7 @@ class FixedPointQuantizer(Layer):
         self.add_output_variable(shape, dims)
         self.set_attr('n_in', self.get_input_variable().size())
         self.overrides = self.attributes['overrides']
-        self.removable = self.attributes['removable']
+        self.fusible = self.attributes['fusible']
         self.SAT, self.RND = self.attributes['SAT'], self.attributes['RND']
         self.mask_kbi = self.attributes.get('mask_kbi', None)
 
