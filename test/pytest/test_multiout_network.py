@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 import tensorflow as tf
-from keras.layers import Add, Dense
+from keras.layers import Dense
 from tensorflow import keras
 
 from hls4ml.converters import convert_from_keras_model
@@ -25,11 +25,7 @@ def model():
     inp = keras.Input(shape=(10,))
     x = Dense(10)(inp)
     y = Dense(10)(inp)
-    z = Dense(10)(inp)
-    xy = Add()([x, y])  # 5
-    xy = Add()([xy, y])  # 5
-    out = Add()([xy, z])  # 5
-    model = keras.Model(inp, out)
+    model = keras.Model(inp, [x, y])
     return model
 
 
@@ -42,18 +38,16 @@ def data():
 
 
 @pytest.mark.parametrize('backend', ['Vivado', 'Quartus', 'Vitis'])
-def test_multi_clone(model, data, backend: str):
-    output_dir = str(test_root_path / f'hls4mlprj_stream_multi_clone_{backend}')
+@pytest.mark.parametrize('io_type', ['io_parallel', 'io_stream'])
+def test_multi_clone(model, data, backend: str, io_type: str):
+    output_dir = str(test_root_path / f'hls4mlprj_multiout_network_{backend}_{io_type}')
     hls_config = {'Model': {'Precision': 'fixed<32,5>', 'ReuseFactor': 1}}
     model_hls = convert_from_keras_model(
-        model,
-        backend=backend,
-        output_dir=output_dir,
-        hls_config=hls_config,
-        io_type='io_stream',  # clone only happens with stream io.
+        model, backend=backend, output_dir=output_dir, hls_config=hls_config, io_type=io_type
     )
     model_hls.compile()
     r_hls = model_hls.predict(data)
-    r_keras = model(data).numpy()
+    r_keras = [x.numpy() for x in model(data)]
 
-    assert np.allclose(r_hls, r_keras, atol=1e-5, rtol=0)
+    assert np.allclose(r_hls[0], r_keras[0], atol=1e-5, rtol=0)
+    assert np.allclose(r_hls[1], r_keras[1], atol=1e-5, rtol=0)
