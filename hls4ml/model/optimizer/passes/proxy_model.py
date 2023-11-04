@@ -5,7 +5,7 @@ from warnings import warn
 from hls4ml.backends.fpga.fpga_types import NamedType
 from hls4ml.model.layers import Layer, register_layer
 from hls4ml.model.optimizer import OptimizerPass, register_pass
-from hls4ml.model.types import FixedPrecisionType
+from hls4ml.model.types import FixedPrecisionType, WeightVariable
 
 re_purge_prefix = re.compile(r'(?<!\w)(?:ap_|ac_)', re.IGNORECASE)
 re_parse_fixed = re.compile(r'\s*(u?)fixed<([^>]+)>\s*', re.IGNORECASE)
@@ -97,8 +97,13 @@ class EnforceProxyModelEmbeddedConfig(OptimizerPass):
                     precision = to_hls4ml_fixed(v)
                     v0.precision = precision
                     v0.name = f'{name}_{k[:-2]}'
-                    # Well, it turned out that there is yet ANOTHER copy saved in config....
-                    # Whyyyy?
+                    # Need to overwrite kernel/bias writing precision also, or written weights will likely be wrong.
+                    if k[:-2] in target_node.attributes.keys():
+                        weight_var: WeightVariable = target_node.attributes[k[:-2]]
+                        # weight_var should be a StaticWeightVariable, which is again, defined with meta programming
+                        # Type hinting using StaticWeightVariableDefinition which is the base class.
+                        weight_var.update_precision(precision)
+                    # Well, it turned out that there is yet ANOTHER copy saved in config.
                     model.config.layer_name_precision[f'{name}_{k[:-2]}'] = v
                 elif k in target_node.attributes.attributes:
                     target_node.set_attr(k, v)
