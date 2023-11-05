@@ -58,6 +58,39 @@ ReLUActLoop:
     }
 }
 
+template <class data_T, class res_T, int MAX_INT, typename CONFIG_T>
+void relu_max(hls::stream<data_T> &data, hls::stream<res_T> &res) {
+ReLUActLoop:
+    for (int i = 0; i < CONFIG_T::n_in / res_T::size; i++) {
+        #pragma HLS PIPELINE
+
+        data_T in_data = data.read();
+        res_T out_data;
+        PRAGMA_DATA_PACK(out_data)
+
+    ReLUPackLoop:
+        for (int j = 0; j < res_T::size; j++) {
+            #pragma HLS UNROLL
+            if (in_data[j] < 0)
+                out_data[j] = 0;
+            else if (in_data[j] > MAX_INT)
+                out_data[j] = MAX_INT;
+            else
+                out_data[j] = in_data[j];
+        }
+
+        res.write(out_data);
+    }
+}
+
+template <class data_T, class res_T, typename CONFIG_T> void relu6(hls::stream<data_T> &data, hls::stream<res_T> &res) {
+    relu_max<data_T, res_T, 6, CONFIG_T>(data, res);
+}
+
+template <class data_T, class res_T, typename CONFIG_T> void relu1(hls::stream<data_T> &data, hls::stream<res_T> &res) {
+    relu_max<data_T, res_T, 1, CONFIG_T>(data, res);
+}
+
 // *************************************************
 //       Sigmoid Activation
 // *************************************************
