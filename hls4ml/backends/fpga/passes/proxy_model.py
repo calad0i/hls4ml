@@ -16,7 +16,7 @@ def generate_mask_fn(
     assert backend.lower() in ('quartus', 'vivado', 'vitis'), f'Backend {backend} not tested'
     Ks, Bs, Is = k[0], b[0], i[0]
     Ks, Bs, Is = np.broadcast_to(Ks, shape), np.broadcast_to(Bs, shape), np.broadcast_to(Is, shape)
-    Ks, Bs, Is = k.ravel(), b.ravel(), i.ravel()
+    Ks, Bs, Is = Ks.ravel(), Bs.ravel(), Is.ravel()
     masks = []
     prefix = 'ac' if backend.lower() == 'quartus' else 'ap'
     PREFIX = prefix.upper()
