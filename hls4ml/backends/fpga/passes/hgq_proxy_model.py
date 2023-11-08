@@ -4,7 +4,7 @@ from hls4ml.backends import Backend
 from hls4ml.backends.template import FunctionCallTemplate
 from hls4ml.model.layers import Layer
 from hls4ml.model.optimizer import OptimizerPass
-from hls4ml.model.optimizer.passes.proxy_model import FixedPointQuantizer
+from hls4ml.model.optimizer.passes.hgq_proxy_model import FixedPointQuantizer
 from hls4ml.model.types import Source
 
 
@@ -76,6 +76,6 @@ class ProcessFixedPointQuantizerCall(FunctionCallTemplate):
         return self.template.format(**params)
 
 
-def register_proxy_model(backend: Backend):
+def register_hgq_proxy_model(backend: Backend):
     backend.register_pass('process_fixed_point_quantizer_layer', ProcessFixedPointQuantizerLayer)
     backend.register_template(ProcessFixedPointQuantizerCall)

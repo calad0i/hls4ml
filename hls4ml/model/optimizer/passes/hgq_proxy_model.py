@@ -119,6 +119,6 @@ class EnforceProxyModelEmbeddedConfig(OptimizerPass):
         return graph_changed
 
 
-def register_proxy_model():
+def register_hgq_proxy_model():
     register_layer('FixedPointQuantizer', FixedPointQuantizer)
     register_pass('enforce_proxy_model_embedded_config', EnforceProxyModelEmbeddedConfig)

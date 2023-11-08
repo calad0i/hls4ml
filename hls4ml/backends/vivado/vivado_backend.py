@@ -273,7 +273,7 @@ class VivadoBackend(FPGABackend):
         if user_pf is not None and layer_pf is not None:
             if user_pf != layer_pf:
                 warn(
-                    f'For layer {layer.name}, parallelization factor of {layer_pf} is defined in the proxy-model, but is overridden by the user to {user_pf}.' # noqa: E501
+                    f'For layer {layer.name}, parallelization factor of {layer_pf} is defined in the proxy-model, but is overridden by the user to {user_pf}.'  # noqa: E501
                 )
 
         valid_pf = self.get_valid_conv_partition_splits(1, out_width)
@@ -339,7 +339,7 @@ class VivadoBackend(FPGABackend):
         if user_pf is not None and layer_pf is not None:
             if user_pf != layer_pf:
                 warn(
-                    f'For layer {layer.name}, parallelization factor of {layer_pf} is defined in the proxy-model, but is overridden by the user to {user_pf}.' # noqa: E501
+                    f'For layer {layer.name}, parallelization factor of {layer_pf} is defined in the proxy-model, but is overridden by the user to {user_pf}.'  # noqa: E501
                 )
 
         valid_pf = self.get_valid_conv_partition_splits(out_height, out_width)
