@@ -1,5 +1,6 @@
 import os
 from contextlib import contextmanager
+from warnings import warn
 
 import numpy as np
 
@@ -266,9 +267,14 @@ class QuartusBackend(FPGABackend):
         self.set_closest_reuse_factor(layer, n_in, n_out)
 
         # Not overriding user parallelization factor, if already set and user has not specified a value
-        user_pf = layer.model.config.get_layer_config_value(layer, 'ParallelizationFactor', 1)
+        user_pf = layer.model.config.get_layer_config_value(layer, 'ParallelizationFactor', None)
         layer_pf = layer.get_attr('parallelization_factor', None)
-        chosen_pf = layer_pf or user_pf
+        chosen_pf = user_pf or layer_pf or 1
+        if user_pf is not None and layer_pf is not None:
+            if user_pf != layer_pf:
+                warn(
+                    f'For layer {layer.name}, parallelization factor of {layer_pf} is defined in the proxy-model, but is overridden by the user to {user_pf}.' # noqa: E501
+                )
         layer.set_attr('parallelization_factor', chosen_pf)
 
         # impl_filt_width determines the filter size post-Winograd transformation
@@ -301,9 +307,14 @@ class QuartusBackend(FPGABackend):
         self.set_closest_reuse_factor(layer, n_in, n_out)
 
         # Not overriding user parallelization factor, if already set and user has not specified a value
-        user_pf = layer.model.config.get_layer_config_value(layer, 'ParallelizationFactor', 1)
+        user_pf = layer.model.config.get_layer_config_value(layer, 'ParallelizationFactor', None)
         layer_pf = layer.get_attr('parallelization_factor', None)
-        chosen_pf = layer_pf or user_pf
+        chosen_pf = user_pf or layer_pf or 1
+        if user_pf is not None and layer_pf is not None:
+            if user_pf != layer_pf:
+                warn(
+                    f'For layer {layer.name}, parallelization factor of {layer_pf} is defined in the proxy-model, but is overridden by the user to {user_pf}.' # noqa: E501
+                )
         layer.set_attr('parallelization_factor', chosen_pf)
 
         # impl_filt_width & impl_filt_height determine the filter size post-Winograd transformation

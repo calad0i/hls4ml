@@ -1,5 +1,6 @@
 import os
 import sys
+from warnings import warn
 
 import numpy as np
 
@@ -266,9 +267,14 @@ class VivadoBackend(FPGABackend):
         out_width = layer.get_output_variable().shape[0]
 
         # Not overriding user parallelization factor, if already set and user has not specified a value
-        user_pf = layer.model.config.get_layer_config_value(layer, 'ParallelizationFactor', 1)
+        user_pf = layer.model.config.get_layer_config_value(layer, 'ParallelizationFactor', None)
         layer_pf = layer.get_attr('parallelization_factor', None)
-        chosen_pf = layer_pf or user_pf
+        chosen_pf = user_pf or layer_pf or 1
+        if user_pf is not None and layer_pf is not None:
+            if user_pf != layer_pf:
+                warn(
+                    f'For layer {layer.name}, parallelization factor of {layer_pf} is defined in the proxy-model, but is overridden by the user to {user_pf}.' # noqa: E501
+                )
 
         valid_pf = self.get_valid_conv_partition_splits(1, out_width)
         if chosen_pf not in valid_pf:
@@ -327,9 +333,14 @@ class VivadoBackend(FPGABackend):
         out_width = layer.get_output_variable().shape[1]
 
         # Not overriding user parallelization factor, if already set and user has not specified a value
-        user_pf = layer.model.config.get_layer_config_value(layer, 'ParallelizationFactor', 1)
+        user_pf = layer.model.config.get_layer_config_value(layer, 'ParallelizationFactor', None)
         layer_pf = layer.get_attr('parallelization_factor', None)
-        chosen_pf = layer_pf or user_pf
+        chosen_pf = user_pf or layer_pf or 1
+        if user_pf is not None and layer_pf is not None:
+            if user_pf != layer_pf:
+                warn(
+                    f'For layer {layer.name}, parallelization factor of {layer_pf} is defined in the proxy-model, but is overridden by the user to {user_pf}.' # noqa: E501
+                )
 
         valid_pf = self.get_valid_conv_partition_splits(out_height, out_width)
         if chosen_pf not in valid_pf:
