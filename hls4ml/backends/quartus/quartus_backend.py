@@ -275,7 +275,7 @@ class QuartusBackend(FPGABackend):
                 warn(
                     f'For layer {layer.name}, parallelization factor of {layer_pf} is defined in the proxy-model, but is overridden by the user to {user_pf}.'  # noqa: E501
                 )
-        layer.set_attr('parallelization_factor', chosen_pf)
+        layer.set_attr('parallelization', chosen_pf)
 
         # impl_filt_width determines the filter size post-Winograd transformation
         layer.set_attr('impl_filt_width', layer.get_attr('filt_width'))
@@ -315,7 +315,7 @@ class QuartusBackend(FPGABackend):
                 warn(
                     f'For layer {layer.name}, parallelization factor of {layer_pf} is defined in the proxy-model, but is overridden by the user to {user_pf}.'  # noqa: E501
                 )
-        layer.set_attr('parallelization_factor', chosen_pf)
+        layer.set_attr('parallelization', chosen_pf)
 
         # impl_filt_width & impl_filt_height determine the filter size post-Winograd transformation
         layer.set_attr('impl_filt_height', layer.get_attr('filt_height'))

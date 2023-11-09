@@ -8,6 +8,14 @@ from hls4ml.model.optimizer.passes.hgq_proxy_model import FixedPointQuantizer
 from hls4ml.model.types import Source
 
 
+def to_apfixed(k,b,i,RND,SAT):
+    u = 'u' if k == 0 else ''
+    return f'ap_{u}fixed<{b},{i},AP_{RND},AP_{SAT}>'
+
+def to_acfixed(k,b,i,RND,SAT):
+    k = 'false' if k == 0 else 'true'
+    return f'ac_fixed<{b},{i},{k},AC_{RND},AC_{SAT}>'
+
 def generate_mask_fn(
     name: str, shape: tuple[int, ...], k: np.ndarray, b: np.ndarray, i: np.ndarray, RND: str, SAT: str, backend: str
 ) -> str:
@@ -18,14 +26,12 @@ def generate_mask_fn(
     Ks, Bs, Is = np.broadcast_to(Ks, shape), np.broadcast_to(Bs, shape), np.broadcast_to(Is, shape)
     Ks, Bs, Is = Ks.ravel(), Bs.ravel(), Is.ravel()
     masks = []
-    prefix = 'ac' if backend.lower() == 'quartus' else 'ap'
-    PREFIX = prefix.upper()
+    to_fixed = to_acfixed if backend.lower() == 'quartus' else to_apfixed
     for idx, (k, b, i) in enumerate(zip(Ks, Bs, Is)):
         if b == 0:
             fn = f'out[{idx}] = 0;'
         else:
-            u = 'u' if k == 0 else ''
-            fn = f'out[{idx}] = {prefix}_{u}fixed<{b},{i},{PREFIX}_{RND},{PREFIX}_{SAT}>(inp[{idx}]);'
+            fn = f'out[{idx}] = {to_fixed(k,b,i,RND,SAT)}(inp[{idx}]);'
         masks.append(f'    {fn}')
     body = "\n".join(masks)
     mask_fn = f'''
