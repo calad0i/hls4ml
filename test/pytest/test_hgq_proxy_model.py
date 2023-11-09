@@ -22,7 +22,6 @@ from hls4ml.utils.fixed_point_quantizer import FixedPointQuantizer
 test_root_path = Path(__file__).parent
 example_model_path = test_root_path.parent.parent / 'example-models'
 
-
 @pytest.fixture(scope='module')
 def jet_classifier_model():
     with open(example_model_path / 'keras/proxy_jet_classifier.json') as f:
@@ -106,7 +105,7 @@ def mnist_data():
     return X_test, y_test
 
 
-@pytest.mark.parametrize('backend', ['Vivado', 'Vitis'])
+@pytest.mark.parametrize('backend', ['Vivado', 'Vitis', 'Quartus'])
 @pytest.mark.parametrize('io_type', ['io_parallel', 'io_stream'])
 @pytest.mark.parametrize('overflow', [True, False])
 def test_proxy_mnist(mnist_data, backend: str, io_type: str, overflow: bool):
@@ -115,23 +114,35 @@ def test_proxy_mnist(mnist_data, backend: str, io_type: str, overflow: bool):
         X *= 2  # This will cause overflow
 
     print(X[0].mean())
-    model = get_mnist_model_stream() if io_type == 'io_stream' else get_mnist_model_parallel()
+    if backend.lower() != 'quartus':
+        model = get_mnist_model_stream() if io_type == 'io_stream' else get_mnist_model_parallel()
+    else:
+        # Codegen is not working for Quartus backend, intra-layer heterogeneous activation quantization not possible.
+        # Only use stream-compatible model, in which all quantizer layers are fusible (homogeneous + layer has no sibling)
+        model = get_mnist_model_stream()
 
     output_dir = str(test_root_path / f'hls4mlprj_proxy_mnist_{backend}_{io_type}_{overflow}')
     hls_config = {
+        'Strategy': 'Latency',
         'Model': {'Precision': 'fixed<16,6>', 'ReuseFactor': 1}
     }  # Accum for io_stream is not fixed. Set a large number as placeholder.
 
     model_hls = convert_from_keras_model(
         model, backend=backend, output_dir=output_dir, hls_config=hls_config, io_type=io_type
     )
-    if io_type == 'io_parallel':
-        # Check parallel factor is propagated to the hls model
-        assert model_hls.graph['h_conv2d'].attributes.attributes['n_partitions'] == 1
-        assert model_hls.graph['h_conv2d_1'].attributes.attributes['n_partitions'] == 1
+    
+    if backend.lower() != 'quartus':
+        if io_type == 'io_parallel':
+            # Check parallel factor is propagated to the hls model
+            assert model_hls.graph['h_conv2d'].attributes.attributes['n_partitions'] == 1
+            assert model_hls.graph['h_conv2d_1'].attributes.attributes['n_partitions'] == 1
+        else:
+            assert model_hls.graph['h_conv2d_2'].attributes.attributes['n_partitions'] == 26**2
+            assert model_hls.graph['h_conv2d_3'].attributes.attributes['n_partitions'] == 11**2
     else:
-        assert model_hls.graph['h_conv2d_2'].attributes.attributes['n_partitions'] == 26**2
-        assert model_hls.graph['h_conv2d_3'].attributes.attributes['n_partitions'] == 11**2
+        # n_partitions is not used in Quartus backend
+        assert model_hls.graph['h_conv2d_2'].attributes.attributes['parallelization'] == 1
+        assert model_hls.graph['h_conv2d_3'].attributes.attributes['parallelization'] == 1
 
     model_hls.compile()
     r_keras = model(X).numpy()  # type: ignore
@@ -140,7 +151,7 @@ def test_proxy_mnist(mnist_data, backend: str, io_type: str, overflow: bool):
     if overflow:
         assert acc < 0.9
     else:
-        if io_type == 'io_parallel':
+        if io_type == 'io_parallel' and backend.lower() != 'quartus':
             assert 0.927 < acc < 0.928
         else:
             assert 0.957 < acc < 0.958
