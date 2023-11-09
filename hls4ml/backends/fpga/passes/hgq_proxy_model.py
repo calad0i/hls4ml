@@ -8,13 +8,15 @@ from hls4ml.model.optimizer.passes.hgq_proxy_model import FixedPointQuantizer
 from hls4ml.model.types import Source
 
 
-def to_apfixed(k,b,i,RND,SAT):
+def to_apfixed(k, b, i, RND, SAT):
     u = 'u' if k == 0 else ''
     return f'ap_{u}fixed<{b},{i},AP_{RND},AP_{SAT}>'
 
-def to_acfixed(k,b,i,RND,SAT):
+
+def to_acfixed(k, b, i, RND, SAT):
     k = 'false' if k == 0 else 'true'
     return f'ac_fixed<{b},{i},{k},AC_{RND},AC_{SAT}>'
+
 
 def generate_mask_fn(
     name: str, shape: tuple[int, ...], k: np.ndarray, b: np.ndarray, i: np.ndarray, RND: str, SAT: str, backend: str
