@@ -125,7 +125,7 @@ def test_proxy_mnist(mnist_data, backend: str, io_type: str, overflow: bool):
     output_dir = str(test_root_path / f'hls4mlprj_proxy_mnist_{backend}_{io_type}_{overflow}')
     hls_config = {
         'Strategy': 'Latency',
-        'Model': {'Precision': 'fixed<16,6>', 'ReuseFactor': 1},
+        'Model': {'Precision': 'fixed<1,0>', 'ReuseFactor': 1},
     }  # Accum for io_stream is not fixed. Set a large number as placeholder.
 
     model_hls = convert_from_keras_model(
