@@ -482,7 +482,7 @@ void binary_tanh(data_T data[CONFIG_T::n_in], res_T res[CONFIG_T::n_in]) {
     for (int ii = 0; ii < CONFIG_T::n_in; ii++) {
         data_T datareg = data[ii];
         res_T cache;
-        if (datareg > 0)
+        if (datareg >= 0)
             cache = 1;
         else
             cache = -1;

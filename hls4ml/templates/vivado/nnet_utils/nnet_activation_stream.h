@@ -769,7 +769,7 @@ PReLUActLoop:
     PReLUPackLoop:
         for (int j = 0; j < res_T::size; j++) {
             #pragma HLS UNROLL
-            if (in_data[j] > 0)
+            if (in_data[j] >= 0)
                 out_data[j] = (typename res_T::value_type)1;
             else
                 out_data[j] = (typename res_T::value_type) - 1;
