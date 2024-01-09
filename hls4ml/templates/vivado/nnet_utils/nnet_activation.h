@@ -410,7 +410,11 @@ template <typename CONFIG_T, int N_TABLE> void init_tanh_table(typename CONFIG_T
     }
 }
 
-template <int N> inline unsigned get_index_unary_lut(ap_private<N, true> x) { return (unsigned)ap_uint<N>(x); }
+template <int table_size, class data_T> inline unsigned get_index_unary_lut(data_T x) {
+    // Slice the top N bits to get an index into the table
+    static constexpr int N = ceillog2(table_size);
+    return (unsigned)(ap_uint<N>(x));
+}
 
 template <class data_T, class res_T, typename CONFIG_T>
 void unary_lut(data_T data[CONFIG_T::n_in], res_T res[CONFIG_T::n_in],
@@ -420,7 +424,7 @@ void unary_lut(data_T data[CONFIG_T::n_in], res_T res[CONFIG_T::n_in],
     #pragma HLS PIPELINE II=CONFIG_T::reuse_factor
 
     for (int ii = 0; ii < CONFIG_T::n_in; ii++) {
-        unsigned index = get_index_unary_lut(data[ii].V);
+        unsigned index = get_index_unary_lut<CONFIG_T::table_size>(data[ii].V);
         res[ii] = (res_T)table[index];
     }
 }
