@@ -455,9 +455,9 @@ void unary_lut(data_T data[CONFIG_T::n_in], res_T res[CONFIG_T::n_in],
                typename CONFIG_T::table_t table[CONFIG_T::table_size]) {
     #pragma HLS function_instantiate variable=table
     #pragma HLS ARRAY_PARTITION variable=table
-    #pragma HLS PIPELINE II=CONFIG_T::reuse_factor
 
     for (int ii = 0; ii < CONFIG_T::n_in; ii++) {
+        #pragma HLS UNROLL
         unsigned index = get_index_unary_lut<CONFIG_T::table_size>(data[ii].V);
         res[ii] = (res_T)table[index];
     }
