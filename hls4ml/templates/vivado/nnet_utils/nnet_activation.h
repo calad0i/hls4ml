@@ -410,6 +410,21 @@ template <typename CONFIG_T, int N_TABLE> void init_tanh_table(typename CONFIG_T
     }
 }
 
+template <int N> inline unsigned get_index_unary_lut(ap_private<N, true> x) { return (unsigned)ap_uint<N>(x); }
+
+template <class data_T, class res_T, typename CONFIG_T>
+void unary_lut(data_T data[CONFIG_T::n_in], res_T res[CONFIG_T::n_in],
+               typename CONFIG_T::table_t table[CONFIG_T::table_size]) {
+    #pragma HLS function_instantiate variable=table
+    #pragma HLS ARRAY_PARTITION variable=table
+    #pragma HLS PIPELINE II=CONFIG_T::reuse_factor
+
+    for (int ii = 0; ii < CONFIG_T::n_in; ii++) {
+        unsigned index = get_index_unary_lut(data[ii].V);
+        res[ii] = (res_T)table[index];
+    }
+}
+
 template <class data_T, class res_T, typename CONFIG_T> void tanh(data_T data[CONFIG_T::n_in], res_T res[CONFIG_T::n_in]) {
     // Initialize the lookup table
 #ifdef __HLS_SYN__
