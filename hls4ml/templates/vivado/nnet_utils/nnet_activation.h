@@ -410,25 +410,6 @@ template <typename CONFIG_T, int N_TABLE> void init_tanh_table(typename CONFIG_T
     }
 }
 
-template <int table_size, class data_T> inline unsigned get_index_unary_lut(data_T x) {
-    // Slice the top N bits to get an index into the table
-    static constexpr int N = ceillog2(table_size);
-    return (unsigned)(ap_uint<N>(x));
-}
-
-template <class data_T, class res_T, typename CONFIG_T>
-void unary_lut(data_T data[CONFIG_T::n_in], res_T res[CONFIG_T::n_in],
-               typename CONFIG_T::table_t table[CONFIG_T::table_size]) {
-    #pragma HLS function_instantiate variable=table
-    #pragma HLS ARRAY_PARTITION variable=table
-    #pragma HLS PIPELINE II=CONFIG_T::reuse_factor
-
-    for (int ii = 0; ii < CONFIG_T::n_in; ii++) {
-        unsigned index = get_index_unary_lut<CONFIG_T::table_size>(data[ii].V);
-        res[ii] = (res_T)table[index];
-    }
-}
-
 template <class data_T, class res_T, typename CONFIG_T> void tanh(data_T data[CONFIG_T::n_in], res_T res[CONFIG_T::n_in]) {
     // Initialize the lookup table
 #ifdef __HLS_SYN__
@@ -457,6 +438,28 @@ template <class data_T, class res_T, typename CONFIG_T> void tanh(data_T data[CO
         if (index > CONFIG_T::table_size - 1)
             index = CONFIG_T::table_size - 1;
         res[ii] = (res_T)tanh_table[index];
+    }
+}
+
+// *************************************************
+//       UnaryLUT Activation
+// *************************************************
+template <int table_size, class data_T> inline unsigned get_index_unary_lut(data_T x) {
+    // Slice the top N bits to get an index into the table
+    static constexpr int N = ceillog2(table_size);
+    return (unsigned)(ap_uint<N>(x));
+}
+
+template <class data_T, class res_T, typename CONFIG_T>
+void unary_lut(data_T data[CONFIG_T::n_in], res_T res[CONFIG_T::n_in],
+               typename CONFIG_T::table_t table[CONFIG_T::table_size]) {
+    #pragma HLS function_instantiate variable=table
+    #pragma HLS ARRAY_PARTITION variable=table
+    #pragma HLS PIPELINE II=CONFIG_T::reuse_factor
+
+    for (int ii = 0; ii < CONFIG_T::n_in; ii++) {
+        unsigned index = get_index_unary_lut<CONFIG_T::table_size>(data[ii].V);
+        res[ii] = (res_T)table[index];
     }
 }
 
