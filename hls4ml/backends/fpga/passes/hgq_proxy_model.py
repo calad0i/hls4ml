@@ -24,6 +24,7 @@ def generate_mask_fn(
     """Generate heterogenous quantization mask function, ONLY works for IOType=io_parallel"""
     assert k.shape[0] == b.shape[0] == i.shape[0] == 1
     assert backend.lower() in ('quartus', 'vivado', 'vitis'), f'Backend {backend} not tested'
+    N_entries = k.shape[0]
     Ks, Bs, Is = k[0], b[0], i[0]
     Ks, Bs, Is = np.broadcast_to(Ks, shape), np.broadcast_to(Bs, shape), np.broadcast_to(Is, shape)
     Ks, Bs, Is = Ks.ravel(), Bs.ravel(), Is.ravel()
@@ -38,7 +39,7 @@ def generate_mask_fn(
     body = "\n".join(masks)
     mask_fn = f'''
 template<typename input_t, typename output_t>
-void {name}(input_t *inp, output_t *out) {{
+void {name}(input_t inp[{N_entries}], output_t out[{N_entries}]) {{
     #pragma HLS INLINE
     #pragma HLS PIPELINE
 
