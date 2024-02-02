@@ -40,7 +40,6 @@ def generate_mask_fn(
 template<typename input_t, typename output_t>
 void {name}(input_t *inp, output_t *out) {{
     #pragma HLS INLINE
-    #pragma HLS PIPELINE
 
 {body}
 }}
