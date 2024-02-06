@@ -447,7 +447,7 @@ template <class data_T, class res_T, typename CONFIG_T> void tanh(data_T data[CO
 template <int table_size, class data_T> inline unsigned get_index_unary_lut(data_T x) {
     // Slice the top N bits to get an index into the table
     static constexpr int N = ceillog2(table_size);
-    return (unsigned)(ap_uint<N>(x));
+    return (unsigned)(x(x.width - 1, 0));
 }
 
 template <class data_T, class res_T, typename CONFIG_T>
