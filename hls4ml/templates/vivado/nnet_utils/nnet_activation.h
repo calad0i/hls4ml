@@ -458,7 +458,7 @@ void unary_lut(data_T data[CONFIG_T::n_in], res_T res[CONFIG_T::n_in],
 
     for (int ii = 0; ii < CONFIG_T::n_in; ii++) {
         #pragma HLS UNROLL
-        unsigned index = get_index_unary_lut<CONFIG_T::table_size>(data[ii].V);
+        unsigned index = get_index_unary_lut<CONFIG_T::table_size>(data[ii]);
         res[ii] = (res_T)table[index];
     }
 }
