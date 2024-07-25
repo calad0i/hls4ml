@@ -28,7 +28,12 @@ def generate_mask_fn(
     Ks, Bs, Is = np.broadcast_to(Ks, shape), np.broadcast_to(Bs, shape), np.broadcast_to(Is, shape)
     Ks, Bs, Is = Ks.ravel(), Bs.ravel(), Is.ravel()
     masks = []
-    to_fixed = to_acfixed if backend.lower() == 'quartus' else to_apfixed
+    if backend.lower() in ('vivado', 'vitis'):
+        to_fixed = to_apfixed
+    else:
+        assert backend.lower() in ('quartus', 'catapult'), f'Backend {backend}\'s fixed-point type is not known'
+        to_fixed = to_acfixed
+
     for idx, (k, b, i) in enumerate(zip(Ks, Bs, Is)):
         if b == 0:
             fn = f'out[{idx}] = 0;'

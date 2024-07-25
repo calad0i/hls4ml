@@ -57,6 +57,15 @@ auto rt_ceillog2(ap_fixed_base<_AP_W, _AP_I, _AP_S, _AP_Q, _AP_O, _AP_N> value) 
     return msb + !is_pow2 - (_AP_W - _AP_I);
 }
 
+template <int M, int E, int E0, int W, int I> INLINE bool cond_minimal_normal(ap_ufixed<W, I> abs_value) {
+    bool is_normal = true;
+    for (int i = 0; i < M + 1; ++i) {
+#pragma HLS UNROLL
+        is_normal &= abs_value[W - I - (1 << (E - 1)) + E0 - i];
+    }
+    return is_normal;
+}
+
 template <int M, int E, int E0 = 0> struct ap_float {
 
     bool is_negative;
@@ -73,24 +82,44 @@ template <int M, int E, int E0 = 0> struct ap_float {
     template <int _AP_W, int _AP_I, bool _AP_S, ap_q_mode _AP_Q, ap_o_mode _AP_O, int _AP_N>
     INLINE int operator=(ap_fixed_base<_AP_W, _AP_I, _AP_S, _AP_Q, _AP_O, _AP_N> value) {
         is_negative = value < 0;
-        auto abs_value = abs(value);
+        ap_ufixed<_AP_W - _AP_S, _AP_I - _AP_S> abs_value = abs(value);
         exponent = rt_floorlog2(abs_value) - E0; // E0 is the offset
-        mantissa = (abs_value >> (ap_int<E>(exponent) + E0)) - 1;
+
+        // std::cout << "cond=" << (abs_value >> (-(1 << (E - 1)) + E0)).to_float() << std::endl;
+        if (exponent != -(1 << (E - 1))) {
+            // Normal
+            mantissa = (abs_value >> (ap_int<E>(exponent) + E0)) - 1;
+        } else if (cond_minimal_normal<M, E, E0>(abs_value)) {
+            // Minimal normal
+            exponent = -(1 << (E - 1)) + 1;
+            mantissa = (abs_value >> (ap_int<E>(exponent) + E0)) - 1;
+        } else {
+            // Subnormal
+            mantissa = (abs_value >> (ap_int<E>(exponent + 1) + E0));
+        }
+
         return 0;
     }
 
-    INLINE ap_fixed<M + 2 + (1 << E) - 1, 1 + (1 << (E - 1)) - 1 + E0> to_ap_fixed() const {
+    INLINE ap_fixed<M + (1 << E) + 1, 1 + (1 << (E - 1)) + E0> to_ap_fixed() const {
+
+        ap_ufixed<M + (1 << E), (1 << (E - 1))> _result;
+        int shift = exponent;
         if (exponent == -(1 << (E - 1))) {
-            return 0;
+            shift += 1;
+            _result = mantissa;
+        } else {
+            _result = mantissa + 1;
         }
-        ap_ufixed<M + (1 << E), (1 << (E - 1))> _result = mantissa + 1;
-        ap_ufixed<M + (1 << E), (1 << (E - 1)) + E0> result = 0;
-        _result = _result << exponent;
+
+        ap_ufixed<M + (1 << E), (1 << (E - 1)) + E0> result;
+
+        _result = _result << shift;
         result.range() = _result.range();
-        if (is_negative) {
-            result = -result;
-        }
-        return result;
+        if (is_negative)
+            return -result;
+        else
+            return result;
     }
 
     INLINE double to_float() const { return to_ap_fixed().to_float(); }
@@ -100,11 +129,17 @@ template <int M, int E, int E0 = 0> struct ap_float {
     template <int _AP_W, int _AP_I, bool _AP_S, ap_q_mode _AP_Q, ap_o_mode _AP_O, int _AP_N>
     auto operator*(ap_fixed_base<_AP_W, _AP_I, _AP_S, _AP_Q, _AP_O, _AP_N> other)
         -> ap_ufixed<M + (1 << E) - 1 + _AP_W, 1 + (1 << (E - 1)) - 1 + E0 + _AP_I> {
+
+        int shift = exponent + E0;
+        opr_mantissa_t mantissa;
         if (exponent == -(1 << (E - 1))) {
-            return 0;
+            shift += 1;
+            mantissa = this->mantissa;
+        } else {
+            mantissa = this->mantissa + 1;
         }
-        opr_mantissa_t mantissa = this->mantissa + 1;
-        auto shift = exponent + E0;
+
+        mantissa = this->mantissa + 1;
         constexpr int E_max = (1 << (E - 1)) - 1 + E0;
         constexpr int E_min = -(1 << (E - 1)) + E0;
         constexpr int I = 1 + E_max + _AP_I;
