@@ -1,9 +1,23 @@
+/*
+ * Copyright 2024-2024 Chang Sun
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #ifndef __AP_FLOAT_H__
 #define __AP_FLOAT_H__
 
-#ifndef MAX
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
-#endif
+#define __AP_FLOAT_H_MAX(a, b) ((a) > (b) ? (a) : (b))
 
 constexpr int ceillog2(int x) { return (x <= 2) ? 1 : 1 + ceillog2((x + 1) / 2); }
 
@@ -36,7 +50,7 @@ INLINE ap_uint<ceillog2(_AP_W)> msb_loc(ap_fixed_base<_AP_W, _AP_I, _AP_S, _AP_Q
 
 template <int _AP_W, int _AP_I, bool _AP_S, ap_q_mode _AP_Q, ap_o_mode _AP_O, int _AP_N>
 auto rt_floorlog2(ap_fixed_base<_AP_W, _AP_I, _AP_S, _AP_Q, _AP_O, _AP_N> value)
-    -> ap_int_base<ceillog2(MAX(_AP_I - _AP_S, _AP_W - _AP_I + 1)) + (_AP_W - _AP_I > 0), (_AP_W - _AP_I > 0)> {
+    -> ap_int_base<ceillog2(__AP_FLOAT_H_MAX(_AP_I - _AP_S, _AP_W - _AP_I + 1)) + (_AP_W - _AP_I > 0), (_AP_W - _AP_I > 0)> {
     // Runtime floorlog2 for fixed point numbers
     auto msb = msb_loc(value);
     ap_int_base<6, 1> r = msb;
@@ -69,9 +83,10 @@ template <int M, int E, int E0, int W, int I> INLINE bool cond_minimal_normal(ap
 template <int M, int E, int E0 = 0> struct ap_float {
 
     bool is_negative;
-    typedef ap_ufixed<M, 0, AP_RND, AP_SAT> mantissa_t;
-    typedef ap_fixed<E, E, AP_RND, AP_SAT> exponent_t;
+    typedef ap_ufixed<M, 0, AP_RND_CONV, AP_SAT> mantissa_t;
+    typedef ap_fixed<E, E, AP_TRN, AP_SAT> exponent_t;
     typedef ap_ufixed<M + 1, 1> opr_mantissa_t;
+    typedef ap_ufixed<M + 1, 1 + E0> opr_mantissa2_t;
     mantissa_t mantissa;
     exponent_t exponent;
     INLINE ap_float() {}
@@ -82,21 +97,23 @@ template <int M, int E, int E0 = 0> struct ap_float {
     template <int _AP_W, int _AP_I, bool _AP_S, ap_q_mode _AP_Q, ap_o_mode _AP_O, int _AP_N>
     INLINE int operator=(ap_fixed_base<_AP_W, _AP_I, _AP_S, _AP_Q, _AP_O, _AP_N> value) {
         is_negative = value < 0;
+        ap_ufixed<M + 1, 1, AP_RND_CONV, AP_SAT> _mantissa;
         ap_ufixed<_AP_W - _AP_S, _AP_I - _AP_S> abs_value = abs(value);
         exponent = rt_floorlog2(abs_value) - E0; // E0 is the offset
 
         // std::cout << "cond=" << (abs_value >> (-(1 << (E - 1)) + E0)).to_float() << std::endl;
         if (exponent != -(1 << (E - 1))) {
             // Normal
-            mantissa = (abs_value >> (ap_int<E>(exponent) + E0)) - 1;
-        } else if (cond_minimal_normal<M, E, E0>(abs_value)) {
-            // Minimal normal
-            exponent = -(1 << (E - 1)) + 1;
-            mantissa = (abs_value >> (ap_int<E>(exponent) + E0)) - 1;
+            _mantissa = (abs_value >> (ap_int<E>(exponent) + E0)) - 1;
         } else {
             // Subnormal
-            mantissa = (abs_value >> (ap_int<E>(exponent + 1) + E0));
+            _mantissa = (abs_value >> (ap_int<E>(exponent + 1) + E0));
         }
+        if (_mantissa >= 1 && exponent != (1 << (E - 1)) - 1) {
+            exponent = exponent + 1;
+            _mantissa = 0;
+        }
+        mantissa = _mantissa;
 
         return 0;
     }
@@ -128,9 +145,9 @@ template <int M, int E, int E0 = 0> struct ap_float {
 
     template <int _AP_W, int _AP_I, bool _AP_S, ap_q_mode _AP_Q, ap_o_mode _AP_O, int _AP_N>
     auto operator*(ap_fixed_base<_AP_W, _AP_I, _AP_S, _AP_Q, _AP_O, _AP_N> other)
-        -> ap_ufixed<M + (1 << E) - 1 + _AP_W, 1 + (1 << (E - 1)) - 1 + E0 + _AP_I> {
+        -> ap_fixed<M + (1 << E) - 1 + _AP_W + (!_AP_S), 1 + (1 << (E - 1)) - 1 + E0 + _AP_I + (!_AP_S)> {
 
-        int shift = exponent + E0;
+        int shift = exponent;
         opr_mantissa_t mantissa;
         if (exponent == -(1 << (E - 1))) {
             shift += 1;
@@ -138,13 +155,16 @@ template <int M, int E, int E0 = 0> struct ap_float {
         } else {
             mantissa = this->mantissa + 1;
         }
+        opr_mantissa2_t mantissa2;
+        mantissa2.range() = mantissa.range();
 
-        mantissa = this->mantissa + 1;
         constexpr int E_max = (1 << (E - 1)) - 1 + E0;
         constexpr int E_min = -(1 << (E - 1)) + E0;
-        constexpr int I = 1 + E_max + _AP_I;
-        constexpr int W = M + E_max - E_min + _AP_W;
-        ap_fixed<W, I> result_fixed = mantissa * other;
+        constexpr int I = 1 + E_max + _AP_I + (!_AP_S);
+        constexpr int W = M + 1 + _AP_W + E_max - E_min + 1 + (!_AP_S);
+
+        ap_fixed<W, I> result_fixed = mantissa2 * other;
+
         if (is_negative) {
             result_fixed = -result_fixed;
         }
@@ -153,13 +173,12 @@ template <int M, int E, int E0 = 0> struct ap_float {
     }
 
     template <int _M, int _E, int _E0> ap_float<_M, _E, _E0> operator*(ap_float<_M, _E, _E0> other) {
-        assert(0) && "ap_float can only be multiplied by ap_fixed";
+        assert(0); // ap_float can only be multiplied by ap_fixed
     }
 };
 
 template <int M, int E, int E0, int _AP_W, int _AP_I, bool _AP_S, ap_q_mode _AP_Q, ap_o_mode _AP_O, int _AP_N>
-auto operator*(ap_fixed_base<_AP_W, _AP_I, _AP_S, _AP_Q, _AP_O, _AP_N> a,
-               ap_float<M, E, E0> b) -> ap_fixed<M + (1 << E) - 1 + _AP_W, 1 + (1 << (E - 1)) - 1 + E0 + _AP_I> {
+auto operator*(ap_fixed_base<_AP_W, _AP_I, _AP_S, _AP_Q, _AP_O, _AP_N> a, ap_float<M, E, E0> b) -> decltype(b * a) {
     return b * a;
 }
 
