@@ -14,7 +14,7 @@ from ..codegen_backends import VitisCodegenBackend, code_gen
 from ..config import _global_config
 from ..dotp_unroll import compile_conv
 from ..precision import FixedPointPrecision
-from ..symbolic_variable import Variable
+from ..symbolic_variable import Variable, fuse_associative_ops
 from ..utils import Singleton
 from .pixel_unrolled_conv import get_input_KIF_idxs
 
@@ -65,7 +65,33 @@ def nn_codegen(
 
         precisions = [FixedPointPrecision.from_kif(k, i, f) for k, i, f in zip(*KIF_in)]
         inp = np.array([to_symbol(p, _i) for _i, p in zip(idxs, precisions)])
-        r = compile_conv(kernel, inp)
+
+        if _global_config.backend == 'da4ml':
+            from da4ml import fn_from_kernel
+
+            signs = list(KIF_in[0])
+            bits = list(KIF_in[1] + KIF_in[2])
+            int_bits = list(KIF_in[1])
+            symmetrics = [False] * len(KIF_in[0])
+            depth = [0] * len(KIF_in[0])
+            fn, _ = fn_from_kernel(
+                kernel=kernel,
+                signs=signs,
+                bits=bits,
+                int_bits=int_bits,
+                symmetrics=symmetrics,
+                depths=depth,
+                n_beams=_global_config.n_beams,
+                n_inp_max=_global_config.inp_n_max,
+                n_out_max=_global_config.out_n_max,
+            )
+            with fuse_associative_ops(False):
+                r = fn(list(inp))
+        elif _global_config.backend == 'mac_tree':
+            r = compile_conv(kernel, inp)
+        else:
+            raise ValueError(f'Backend {_global_config.backend} is unknown.')
+
         if bias is not None:
             r = r + bias
         R.extend(r)

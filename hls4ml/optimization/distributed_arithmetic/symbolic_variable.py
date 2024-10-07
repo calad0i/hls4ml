@@ -240,10 +240,10 @@ class Variable(VariableBase):
         return Variable(-self.precision, (self,), 'neg', depth=self.depth + self.precision.b, n_depth=self.n_depth + 1)
 
     def __sub__(self, other) -> 'Variable':
-        # if not isinstance(other, Variable):
-        return self + (-other)
-        # depth = max(self.depth, other.depth) + 1
-        # return Variable(self.precision - other.precision, (self, other), 'sub', depth=depth)
+        if not isinstance(other, Variable):
+            return self + (-other)
+        depth = max(self.depth, other.depth) + 1
+        return Variable(self.precision - other.precision, (self, other), 'sub', depth=depth)
 
     def __rsub__(self, other) -> 'Variable':
         return -self + other

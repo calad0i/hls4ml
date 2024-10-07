@@ -1,7 +1,7 @@
 class _global_config:
     trace_depth = False
     fuse_associative_ops = True
-    backend = 'generic'
+    backend = 'da4ml'
     order_metrics = ()
     enabled = True
     dsp_offload_thres = -1
@@ -9,6 +9,9 @@ class _global_config:
     use_ternary = False
     allow_split = True
     enable_pixel_unroll = False
+    inp_n_max = -1
+    out_n_max = -1
+    n_beams = 1
 
 
 class VariableOverrideContextManager:
@@ -37,11 +40,19 @@ def compiler_config(
     use_ternary: bool = False,
     allow_split: bool = True,
     flatten_conv: bool = False,
+    backend: str = 'da4ml',
+    inp_n_max: int = -1,
+    out_n_max: int = -1,
+    n_beams: int = 1,
 ):
 
     _global_config.enabled = enabled
     _global_config.dsp_offload_thres = dsp_offload_thres
     _global_config.minimal_latency_compile = minimal_latency
+    _global_config.inp_n_max = inp_n_max
+    _global_config.out_n_max = out_n_max
     _global_config.use_ternary = use_ternary
     _global_config.allow_split = allow_split
     _global_config.enable_pixel_unroll = flatten_conv
+    _global_config.backend = backend
+    _global_config.n_beams = n_beams
