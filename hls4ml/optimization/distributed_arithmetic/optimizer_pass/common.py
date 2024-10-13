@@ -74,6 +74,12 @@ def nn_codegen(
             int_bits = list(KIF_in[1])
             symmetrics = [False] * len(KIF_in[0])
             depth = [0] * len(KIF_in[0])
+
+            *_ch_in, ch_out = kernel.shape
+            ch_in = int(np.prod(_ch_in))
+            inp = np.reshape(inp, ch_in)
+            kernel = np.reshape(kernel, (ch_in, ch_out))
+
             fn, _ = fn_from_kernel(
                 kernel=kernel,
                 signs=signs,

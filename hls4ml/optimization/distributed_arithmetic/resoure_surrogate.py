@@ -166,7 +166,7 @@ class ResourceSurrogate:
                 'No layer is registered. If you have run `scan` already, the model contains no unrolled layer that this surrogate can analyze.'  # noqa: E501
             )
         df = pd.DataFrame.from_dict(self.layers, orient='index')
-        lut = np.round((df['add'] + df['neg'] + 2 * df['sub']) * 0.65 + df['cmp'] * 1.5).astype(int) * df['pf']
+        lut = np.round((df['add'] + df['sub']) * 0.8 + df['cmp'] * 1.5).astype(int) * df['pf']
         dsp = np.round(df['n_mul']).astype(int) * df['pf']
         latency_ns = df['depth'] * 0.86
         summary = pd.DataFrame({'LUT': lut, 'DSP': dsp, 'Latency (ns)': latency_ns})
