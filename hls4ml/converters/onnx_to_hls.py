@@ -1,6 +1,4 @@
 import numpy as np
-import onnx
-from onnx import helper, numpy_helper, shape_inference
 
 from hls4ml.model import ModelGraph
 
@@ -36,6 +34,8 @@ class ONNXDataReader:
         Returns:
             ndarray: Extracted weights data.
         """
+        from onnx import numpy_helper
+
         # Get the node associated with the layer name
         node = next(node for node in self.model.graph.node if node.name == layer_name)
 
@@ -89,6 +89,8 @@ def replace_char_inconsitency(name):
 
 
 def get_onnx_attribute(operation, name, default=None):
+    from onnx import helper
+
     attr = next((x for x in operation.attribute if x.name == name), None)
     if attr is None:
         value = default
@@ -220,6 +222,9 @@ def onnx_to_hls(config):
     Returns:
         ModelGraph: hls4ml model object
     """
+    import onnx
+    from onnx import shape_inference
+
     # This is a list of dictionaries to hold all the layer info we need to generate HLS
     layer_list = []
 
