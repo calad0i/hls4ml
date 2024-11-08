@@ -10,6 +10,7 @@ from hls4ml.converters.keras_to_hls import KerasReader  # noqa: F401
 from hls4ml.converters.keras_to_hls import get_supported_keras_layers  # noqa: F401
 from hls4ml.converters.keras_to_hls import parse_keras_model  # noqa: F401
 from hls4ml.converters.keras_to_hls import keras_to_hls, register_keras_layer_handler
+from hls4ml.converters.keras_v3_to_hls import parse_keras_v3_model  # noqa: F401
 
 # from hls4ml.converters.pytorch_to_hls import parse_pytorch_model  # noqa: F401
 from hls4ml.model import ModelGraph
