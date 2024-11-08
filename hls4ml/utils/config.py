@@ -1,6 +1,7 @@
 import json
 
 import hls4ml
+import hls4ml.converters.keras_v3_to_hls
 
 
 def create_config(output_dir='my-hls-test', project_name='myproject', backend='Vivado', version='1.0.0', **kwargs):
@@ -157,12 +158,17 @@ def config_from_keras_model(
 
     if isinstance(model, dict):
         model_arch = model
+        reader = hls4ml.converters.KerasModelReader(model)
+        layer_list, _, _, _ = hls4ml.converters.parse_keras_model(model_arch, reader)
     else:
-        model_arch = json.loads(model.to_json())
+        import keras
 
-    reader = hls4ml.converters.KerasModelReader(model)
-
-    layer_list, _, _, _ = hls4ml.converters.parse_keras_model(model_arch, reader)
+        if keras.__version__ > '3.0':
+            layer_list, *_ = hls4ml.converters.parse_keras_v3_model(model)
+        else:
+            model_arch = json.loads(model.to_json())
+            reader = hls4ml.converters.KerasModelReader(model)
+            layer_list, _, _, _ = hls4ml.converters.parse_keras_model(model_arch, reader)
 
     def make_layer_config(layer):
         cls_name = layer['class_name']
