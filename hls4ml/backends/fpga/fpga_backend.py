@@ -7,7 +7,7 @@ from collections.abc import Iterable
 import numpy as np
 
 from hls4ml.backends.backend import Backend
-from hls4ml.model.attributes import ChoiceAttribute, ConfigurableAttribute, TypeAttribute
+from hls4ml.model.attributes import ConfigurableAttribute, TypeAttribute
 from hls4ml.model.layers import (
     GRU,
     LSTM,
@@ -27,7 +27,6 @@ from hls4ml.model.layers import (
     SeparableConv1D,
     SeparableConv2D,
     SimpleRNN,
-    Softmax,
 )
 from hls4ml.model.optimizer import model_optimizer
 from hls4ml.model.types import (
@@ -35,8 +34,6 @@ from hls4ml.model.types import (
     FixedPrecisionType,
     IntegerPrecisionType,
     PrecisionType,
-    RoundingMode,
-    SaturationMode,
     UnspecifiedPrecisionType,
     XnorPrecisionType,
 )
@@ -91,23 +88,6 @@ class FPGABackend(Backend):
         act_attrs.append(ConfigurableAttribute('table_size', default=1024))
         act_attrs.append(TypeAttribute('table', default=FixedPrecisionType(18, 8)))
         self.attribute_map[Activation] = act_attrs
-
-        softmax_attrs = self.attribute_map.get(Softmax, [])
-        softmax_attrs.append(ChoiceAttribute('implementation', ['latency', 'stable', 'argmax', 'legacy'], default='stable'))
-        softmax_attrs.append(ConfigurableAttribute('skip', value_type=bool, default=False))
-        softmax_attrs.append(
-            TypeAttribute(
-                'exp_table',
-                default=FixedPrecisionType(18, 8, rounding_mode=RoundingMode.RND, saturation_mode=SaturationMode.SAT),
-            )
-        )
-        softmax_attrs.append(
-            TypeAttribute(
-                'inv_table',
-                default=FixedPrecisionType(18, 8, rounding_mode=RoundingMode.RND, saturation_mode=SaturationMode.SAT),
-            )
-        )
-        self.attribute_map[Softmax] = softmax_attrs
 
     def create_layer_class(self, layer_class):
         new_attrubutes = []
