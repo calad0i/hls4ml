@@ -194,6 +194,18 @@ class FixedPrecisionType(PrecisionType):
 
         return False
 
+    @property
+    def min(self):
+        if not self.signed:
+            return 0.0
+        if self.saturation_mode == SaturationMode.SAT_SYM:
+            return -(2.0 ** (self.integer - 1)) + 2.0**-self.fractional
+        return -(2.0 ** (self.integer - 1))
+
+    @property
+    def max(self):
+        return 2.0 ** (self.integer - 1) - 2.0**-self.fractional
+
 
 class XnorPrecisionType(PrecisionType):
     """

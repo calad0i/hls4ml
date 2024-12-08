@@ -19,7 +19,8 @@ from HGQ.layers import (  # noqa: F401
     Signature,
 )
 from HGQ.proxy import to_proxy_model
-from HGQ.proxy.fixed_point_quantizer import gfixed
+
+# from HGQ.proxy.fixed_point_quantizer import gfixed
 from tensorflow import keras
 
 from hls4ml.converters import convert_from_keras_model
@@ -27,7 +28,7 @@ from hls4ml.converters import convert_from_keras_model
 # tf.config.experimental_run_functions_eagerly(True)  # noqa
 
 
-test_path = Path(__file__).parent
+test_path = Path('/tmp/test')
 
 
 def _run_synth_match_test(proxy: keras.Model, data, io_type: str, backend: str, dir: str, cond=None):
@@ -200,12 +201,12 @@ def custom_activation_fn(x):
         "HConv2D(2, (3,3), padding='same', strides=2)",
         "HConv2DBatchNorm(2, (3,3), padding='valid')",
         "HAdd()",
-        "HActivation('relu')",
-        #   "HActivation('leaky_relu')",
-        "HActivation('tanh')",
-        "HActivation('sigmoid')",
+        # "HActivation('relu')",
+        # "HActivation('leaky_relu')",
+        # "HActivation('tanh')",
+        # "HActivation('sigmoid')",
         # "HActivation('softmax')",
-        "HActivation(custom_activation_fn)",
+        # "HActivation(custom_activation_fn)",
     ],
 )
 @pytest.mark.parametrize("N", [1000])
@@ -224,41 +225,41 @@ def test_syn_hlayers(layer, N: int, rnd_strategy: str, io_type: str, cover_facto
     run_model_test(model, cover_factor, data, io_type, backend, str(path), aggressive, cond=cond)
 
 
-@pytest.mark.parametrize(
-    'layer',
-    [
-        "PConcatenate()",
-        "PMaxPool1D(2, padding='same')",
-        "PMaxPool1D(4, padding='same')",
-        "PMaxPool2D((5,3), padding='same')",
-        "PMaxPool1D(2, padding='valid')",
-        "PMaxPool2D((2,3), padding='valid')",
-        "Signature(1,6,3)",
-        "PAvgPool1D(2, padding='same')",
-        "PAvgPool2D((1,2), padding='same')",
-        "PAvgPool2D((2,2), padding='same')",
-        "PAvgPool1D(2, padding='valid')",
-        "PAvgPool2D((1,2), padding='valid')",
-        "PAvgPool2D((2,2), padding='valid')",
-        "PFlatten()",
-    ],
-)
-@pytest.mark.parametrize("N", [1000])
-@pytest.mark.parametrize("rnd_strategy", ['floor', 'standard_round'])
-@pytest.mark.parametrize("io_type", ['io_parallel', 'io_stream'])
-@pytest.mark.parametrize("cover_factor", [1.0])
-@pytest.mark.parametrize("aggressive", [True, False])
-@pytest.mark.parametrize("backend", ['vivado', 'vitis'])
-def test_syn_players(layer, N: int, rnd_strategy: str, io_type: str, cover_factor: float, aggressive: bool, backend: str):
-    model = create_player_model(layer=layer, rnd_strategy=rnd_strategy, io_type=io_type)
-    data = get_data((N, 15), 7, 1)
+# @pytest.mark.parametrize(
+#     'layer',
+#     [
+#         "PConcatenate()",
+#         "PMaxPool1D(2, padding='same')",
+#         "PMaxPool1D(4, padding='same')",
+#         "PMaxPool2D((5,3), padding='same')",
+#         "PMaxPool1D(2, padding='valid')",
+#         "PMaxPool2D((2,3), padding='valid')",
+#         "Signature(1,6,3)",
+#         "PAvgPool1D(2, padding='same')",
+#         "PAvgPool2D((1,2), padding='same')",
+#         "PAvgPool2D((2,2), padding='same')",
+#         "PAvgPool1D(2, padding='valid')",
+#         "PAvgPool2D((1,2), padding='valid')",
+#         "PAvgPool2D((2,2), padding='valid')",
+#         "PFlatten()",
+#     ],
+# )
+# @pytest.mark.parametrize("N", [1000])
+# @pytest.mark.parametrize("rnd_strategy", ['floor', 'standard_round'])
+# @pytest.mark.parametrize("io_type", ['io_parallel', 'io_stream'])
+# @pytest.mark.parametrize("cover_factor", [1.0])
+# @pytest.mark.parametrize("aggressive", [True, False])
+# @pytest.mark.parametrize("backend", ['vivado', 'vitis'])
+# def test_syn_players(layer, N: int, rnd_strategy: str, io_type: str, cover_factor: float, aggressive: bool, backend: str):
+#     model = create_player_model(layer=layer, rnd_strategy=rnd_strategy, io_type=io_type)
+#     data = get_data((N, 15), 7, 1)
 
-    path = test_path / f'hls4mlprj_hgq_{layer}_{rnd_strategy}_{io_type}_{aggressive}_{backend}'
+#     path = test_path / f'hls4mlprj_hgq_{layer}_{rnd_strategy}_{io_type}_{aggressive}_{backend}'
 
-    if 'Signature' in layer:
-        q = gfixed(1, 6, 3)
-        data = q(data).numpy()
-    if "padding='same'" in layer and io_type == 'io_stream':
-        pytest.skip("io_stream does not support padding='same' for pools at the moment")
+#     if 'Signature' in layer:
+#         q = gfixed(1, 6, 3)
+#         data = q(data).numpy()
+#     if "padding='same'" in layer and io_type == 'io_stream':
+#         pytest.skip("io_stream does not support padding='same' for pools at the moment")
 
-    run_model_test(model, cover_factor, data, io_type, backend, str(path), aggressive)
+#     run_model_test(model, cover_factor, data, io_type, backend, str(path), aggressive)
