@@ -3,7 +3,7 @@
 
 import re
 import typing
-from collections.abc import Sequence
+from collections.abc import Generator, Sequence
 from copy import copy
 from functools import reduce, singledispatch
 from math import ceil, log2, prod
@@ -866,6 +866,16 @@ class BitExact(ModelOptimizerPass):
         return True
 
 
+def get_output_quantizers(node: Layer) -> Generator[FixedPointQuantizer, None, None]:
+    for _node in get_output_layers(node):
+        if isinstance(_node, FixedPointQuantizer):
+            yield _node
+        elif isinstance(_node, (Reshape, Transpose)):
+            yield from get_output_quantizers(_node)
+        else:
+            raise ValueError(f'Layer {node.name} ({node.class_name}) unexpected input layer chain.')
+
+
 class FixInputPrecision(OptimizerPass):
     def match(self, node: Layer):
         if not isinstance(node, Input):
@@ -875,11 +885,7 @@ class FixInputPrecision(OptimizerPass):
         return node.get_output_variable().type.precision.width > 100
 
     def transform(self, model, node: Layer):
-        out_layers: list[FixedPointQuantizer] = get_output_layers(node)  # type: ignore
-        for layer in out_layers:
-            assert isinstance(
-                layer, FixedPointQuantizer
-            ), f'Input {node.name} connected to non-quantizer {layer.name} with non-trivial configuration'
+        out_layers = list(get_output_quantizers(node))
 
         if len(out_layers) == 0:  # Input connected to nothing
             new_type = to_hls4ml_fixed(0, 0, 1, f'{node.name}_t')
