@@ -9,6 +9,7 @@ from hls4ml.converters.keras_v3.conv import ConvHandler
 from hls4ml.converters.keras_v3.core import ActivationHandler, DenseHandler
 from hls4ml.converters.keras_v3.einsum_dense import EinsumDenseHandler
 from hls4ml.converters.keras_v3.merge import MergeHandler
+from hls4ml.converters.keras_v3.pooling import PoolingHandler
 
 if TYPE_CHECKING:
     import hgq
@@ -242,4 +243,32 @@ class QMergeHandler(QLayerHandler, MergeHandler):
             conf['class_name'] = 'Dot'
             conf['op'] = 'dot1d'
             conf['axes'] = layer.axes
+        return conf
+
+
+@register
+class QPoolingHandler(QLayerHandler, PoolingHandler):
+    handles = (
+        'hgq.layers.pooling.QMaxPooling1D',
+        'hgq.layers.pooling.QMaxPooling2D',
+        'hgq.layers.pooling.QMaxPooling3D',
+        'hgq.layers.pooling.QAveragePooling1D',
+        'hgq.layers.pooling.QAveragePooling2D',
+        'hgq.layers.pooling.QAveragePooling3D',
+        'hgq.layers.pooling.QGlobalAveragePooling1D',
+        'hgq.layers.pooling.QGlobalAveragePooling2D',
+        'hgq.layers.pooling.QGlobalAveragePooling3D',
+        'hgq.layers.pooling.QGlobalMaxPooling1D',
+        'hgq.layers.pooling.QGlobalMaxPooling2D',
+        'hgq.layers.pooling.QGlobalMaxPooling3D',
+    )
+
+    def handle(
+        self,
+        layer: 'hgq.layers.pooling.QBasePooling',
+        in_tensors: Sequence['KerasTensor'],
+        out_tensors: Sequence['KerasTensor'],
+    ):
+        conf = super().handle(layer, in_tensors, out_tensors)
+        conf['class_name'] = layer.__class__.__name__[1:]  # Remove leading 'Q'
         return conf
