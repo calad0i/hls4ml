@@ -8,7 +8,7 @@ import numpy as np
 from hls4ml.utils.einsum_utils import EinsumRecipe, parse_einsum
 
 
-def _minimal_f(array: np.ndarray):
+def _minimal_f(array: np.ndarray) -> np.ndarray:
     _low, _high = np.full(array.shape, -32, dtype=np.int8), np.full(array.shape, 32, dtype=np.int8)
     while np.any(_low < _high - 1):
         _mid = (_low + _high) // 2

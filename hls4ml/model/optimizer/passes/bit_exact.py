@@ -35,7 +35,7 @@ from hls4ml.model.layers import (
 from hls4ml.model.optimizer import ModelOptimizerPass, OptimizerPass
 from hls4ml.model.optimizer.passes.hgq_proxy_model import FixedPointQuantizer, UnaryLUT
 from hls4ml.model.types import FixedPrecisionType, NamedType, RoundingMode, SaturationMode, WeightVariable
-from hls4ml.utils.qinterval import QIntervalArray, einsum, minimal_kif
+from hls4ml.utils.qinterval import QIntervalArray, _minimal_f, einsum, minimal_kif
 
 if typing.TYPE_CHECKING:
     from hls4ml.model import ModelGraph
@@ -243,7 +243,15 @@ def _(layer: FixedPointQuantizer):
         f = np.where(mask, _f, f)
         k = np.where(mask, _k, k)
     # Set zeros to zero
-    idx_zeros = np.where(k + i + f <= 0)
+    idx_zeros = k + i + f <= 0
+
+    if layer.RND in ('RND' or 'RND_CONV'):
+        step = 2.0**-f
+        prev_max = 2.0**li - 2.0**-lf
+        prev_min = -lk * 2.0**li
+        prev_absmax = np.maximum(-prev_min, prev_max)
+        idx_zeros |= step > 2 * prev_absmax  # Case always round to 0
+
     k[idx_zeros] = 0
     i[idx_zeros] = 0
     f[idx_zeros] = 0
@@ -475,7 +483,20 @@ def _(layer: Pooling1D | Pooling2D | GlobalPooling1D | GlobalPooling2D):
 
     pool_op = layer.attributes['pool_op']
     if pool_op == 'Average':
-        f_add = minimal_kif(np.array(1 / prod(px_shape)))[2]
+        f_add = -128
+        pad_w = max(layer.attributes['pad_left'], layer.attributes['pad_right'])
+        if len(px_shape) > 1:
+            assert len(px_shape) == 2
+            pad_h = max(layer.attributes['pad_top'], layer.attributes['pad_bottom'])
+            for ph in range(pad_h + 1):
+                for pw in range(pad_w + 1):
+                    n = (px_shape[0] - ph) * (px_shape[1] - pw)
+                    f_add = max(int(_minimal_f(np.array(1 / n))), f_add)
+        else:
+            for pw in range(pad_w + 1):
+                n = px_shape[0] - pw
+                f_add = max(int(_minimal_f(np.array(1 / n))), f_add)
+        f_add = min(16, f_add)  # 16 bits in fractional for non-power-of-2 division
         f_out += int(f_add)
 
     if isinstance(layer, (GlobalPooling1D, GlobalPooling2D)):
